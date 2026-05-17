@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="أسعار لحظية">
+<meta name="theme-color" content="#080810">
+<title>أسعار لحظية</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap');
+:root {
+  --bg:#080810;--surface:#0f0f1a;--card:#13131f;--border:#1a1a2e;--border2:#222238;
+  --gold:#f5c842;--gold-dim:rgba(245,200,66,0.12);
+  --green:#00d97e;--green-dim:rgba(0,217,126,0.1);
+  --red:#ff4560;--red-dim:rgba(255,69,96,0.1);
+  --blue:#4a9eff;--text:#eeeef8;--text2:#9898b8;--text3:#555570;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:90px;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 40% at 80% 10%,rgba(245,200,66,0.06) 0%,transparent 60%),radial-gradient(ellipse 50% 30% at 10% 80%,rgba(74,158,255,0.04) 0%,transparent 50%);pointer-events:none;z-index:0;}
+.topbar{position:sticky;top:0;z-index:50;background:rgba(8,8,16,0.9);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;}
+.topbar-title{font-size:18px;font-weight:900;color:var(--gold);}
+.topbar-sub{font-size:11px;color:var(--text3);margin-top:2px;}
+.refresh-btn{background:var(--gold-dim);border:1px solid rgba(245,200,66,0.2);color:var(--gold);border-radius:10px;padding:8px 14px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:6px;}
+.refresh-btn:active{transform:scale(0.95);}
+.refresh-icon{display:inline-block;transition:transform 0.6s;}
+.spinning .refresh-icon{transform:rotate(360deg);}
+.main{position:relative;z-index:1;padding:0 16px;}
+.section-title{font-size:11px;font-weight:700;color:var(--text3);letter-spacing:1.8px;text-transform:uppercase;padding:20px 4px 10px;}
+.source-badge{display:inline-flex;align-items:center;gap:6px;background:var(--green-dim);border:1px solid rgba(0,217,126,0.2);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;color:var(--green);margin-bottom:12px;}
+.source-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 1.5s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+.prices-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.price-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;position:relative;overflow:hidden;transition:border-color 0.3s,transform 0.2s;cursor:pointer;}
+.price-card:active{transform:scale(0.97);}
+.price-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;opacity:0.7;border-radius:16px 16px 0 0;}
+.gold-card::before{background:linear-gradient(90deg,#f5c842,#e8a000);}
+.usd-card::before{background:linear-gradient(90deg,#00d97e,#00b860);}
+.eur-card::before{background:linear-gradient(90deg,#4a9eff,#2070cc);}
+.sar-card::before{background:linear-gradient(90deg,#a855f7,#7c3aed);}
+.gbp-card::before{background:linear-gradient(90deg,#f97316,#dc2626);}
+.card-alert-dot{position:absolute;top:12px;left:12px;width:8px;height:8px;border-radius:50%;background:var(--gold);animation:blink 1.5s infinite;display:none;}
+.card-alert-dot.visible{display:block;}
+.card-flag{font-size:22px;margin-bottom:8px;}
+.card-name{font-size:11px;color:var(--text2);font-weight:600;margin-bottom:4px;}
+.card-value{font-size:22px;font-weight:900;line-height:1;transition:opacity 0.4s;}
+.card-unit{font-size:10px;color:var(--text3);margin-top:4px;}
+.buy-sell{display:flex;gap:6px;margin-top:8px;}
+.buy-tag,.sell-tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;}
+.buy-tag{background:var(--green-dim);color:var(--green);}
+.sell-tag{background:var(--red-dim);color:var(--red);}
+.alert-panel{background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden;margin-bottom:12px;}
+.alert-panel-header{padding:16px 20px;background:var(--surface);border-bottom:1px solid var(--border);font-size:14px;font-weight:700;}
+.alert-panel-body{padding:16px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.field-label{font-size:11px;color:var(--text2);font-weight:600;margin-bottom:6px;display:block;}
+select,input[type=number]{width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:12px 14px;color:var(--text);font-family:'Cairo',sans-serif;font-size:14px;font-weight:700;outline:none;transition:border-color 0.2s,box-shadow 0.2s;-moz-appearance:textfield;appearance:none;}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;}
+select:focus,input[type=number]:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(245,200,66,0.08);}
+.rate-hint{font-size:11px;color:var(--text3);text-align:center;margin-bottom:10px;}
+.rate-hint span{color:var(--gold);font-weight:700;}
+.add-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--gold),#e8a000);border:none;border-radius:12px;color:#080810;font-family:'Cairo',sans-serif;font-size:15px;font-weight:900;cursor:pointer;transition:all 0.2s;}
+.add-btn:active{transform:scale(0.97);opacity:0.9;}
+.alerts-container{display:flex;flex-direction:column;gap:8px;}
+.alert-item{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;animation:slideDown 0.3s ease;transition:border-color 0.3s;}
+@keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.alert-item.triggered{border-color:var(--red);background:rgba(255,69,96,0.04);}
+.alert-left{display:flex;align-items:center;gap:12px;}
+.alert-emoji{font-size:22px;}
+.alert-name{font-size:13px;font-weight:700;}
+.alert-desc{font-size:11px;color:var(--text2);margin-top:2px;}
+.alert-right{display:flex;align-items:center;gap:8px;}
+.badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;}
+.badge-active{background:var(--green-dim);color:var(--green);}
+.badge-triggered{background:var(--red-dim);color:var(--red);animation:flashBadge 1s infinite alternate;}
+@keyframes flashBadge{from{opacity:1}to{opacity:0.4}}
+.del-btn{background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:4px 6px;border-radius:8px;transition:color 0.2s;line-height:1;}
+.del-btn:active{color:var(--red);}
+.empty-msg{text-align:center;color:var(--text3);font-size:13px;padding:24px;line-height:2;}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(8,8,16,0.92);backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom);}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;background:none;border:none;cursor:pointer;color:var(--text3);font-family:'Cairo',sans-serif;font-size:10px;font-weight:700;transition:color 0.2s;gap:4px;}
+.nav-btn .nav-icon{font-size:20px;}
+.nav-btn.active{color:var(--gold);}
+.nav-btn.active .nav-icon{filter:drop-shadow(0 0 6px rgba(245,200,66,0.6));}
+.page{display:none;}
+.page.active{display:block;}
+.toast{position:fixed;bottom:90px;left:16px;right:16px;transform:translateY(20px);opacity:0;background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:14px 18px;font-size:14px;font-weight:700;color:var(--text);box-shadow:0 8px 32px rgba(0,0,0,0.6);transition:all 0.35s cubic-bezier(0.175,0.885,0.32,1.275);z-index:200;text-align:center;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.gold{border-color:rgba(245,200,66,0.4);color:var(--gold);}
+.toast.danger{border-color:rgba(255,69,96,0.4);color:var(--red);}
+.toast.ok{border-color:rgba(0,217,126,0.4);color:var(--green);}
+.settings-card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:12px;}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);}
+.settings-row:last-child{border-bottom:none;}
+.settings-label{font-size:14px;font-weight:600;}
+.settings-sub{font-size:11px;color:var(--text3);margin-top:2px;}
+.toggle{position:relative;width:44px;height:24px;}
+.toggle input{opacity:0;width:0;height:0;}
+.toggle-slider{position:absolute;inset:0;background:var(--border2);border-radius:24px;transition:0.3s;cursor:pointer;}
+.toggle-slider::before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:var(--text2);border-radius:50%;transition:0.3s;}
+.toggle input:checked+.toggle-slider{background:var(--gold);}
+.toggle input:checked+.toggle-slider::before{transform:translateX(20px);background:#080810;}
+.install-hint{background:linear-gradient(135deg,rgba(245,200,66,0.08),rgba(245,200,66,0.03));border:1px solid rgba(245,200,66,0.2);border-radius:14px;padding:16px;margin-bottom:12px;font-size:13px;line-height:1.8;color:var(--text2);}
+.install-hint strong{color:var(--gold);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <div class="topbar-title">📊 أسعار لحظية</div>
+    <div class="topbar-sub" id="lastUpdate">جاري التحديث...</div>
+  </div>
+  <button class="refresh-btn" id="refreshBtn" onclick="fetchAll()">
+    <span class="refresh-icon">↻</span> تحديث
+  </button>
+</div>
+
+<div class="main">
+
+  <div class="page active" id="page-prices">
+    <div class="section-title">الأسعار الحالية</div>
+    <div class="source-badge"><div class="source-dot"></div>البنك الأهلي المصري</div>
+    <div class="prices-grid">
+      <div class="price-card gold-card" onclick="quickAlert('gold')">
+        <div class="card-alert-dot" id="dot-gold"></div>
+        <div class="card-flag">🥇</div>
+        <div class="card-name">الذهب عيار 21</div>
+        <div class="card-value" id="val-gold" style="color:var(--gold)">—</div>
+        <div class="card-unit">جنيه / جرام</div>
+        <div class="buy-sell">
+          <span class="buy-tag" id="buy-gold">شراء —</span>
+          <span class="sell-tag" id="sell-gold">بيع —</span>
+        </div>
+      </div>
+      <div class="price-card usd-card" onclick="quickAlert('usd')">
+        <div class="card-alert-dot" id="dot-usd"></div>
+        <div class="card-flag">🇺🇸</div>
+        <div class="card-name">دولار أمريكي</div>
+        <div class="card-value" id="val-usd" style="color:var(--green)">—</div>
+        <div class="card-unit">جنيه / دولار</div>
+        <div class="buy-sell">
+          <span class="buy-tag" id="buy-usd">شراء —</span>
+          <span class="sell-tag" id="sell-usd">بيع —</span>
+        </div>
+      </div>
+      <div class="price-card eur-card" onclick="quickAlert('eur')">
+        <div class="card-alert-dot" id="dot-eur"></div>
+        <div class="card-flag">🇪🇺</div>
+        <div class="card-name">يورو</div>
+        <div class="card-value" id="val-eur" style="color:var(--blue)">—</div>
+        <div class="card-unit">جنيه / يورو</div>
+        <div class="buy-sell">
+          <span class="buy-tag" id="buy-eur">شراء —</span>
+          <span class="sell-tag" id="sell-eur">بيع —</span>
+        </div>
+      </div>
+      <div class="price-card sar-card" onclick="quickAlert('sar')">
+        <div class="card-alert-dot" id="dot-sar"></div>
+        <div class="card-flag">🇸🇦</div>
+        <div class="card-name">ريال سعودي</div>
+        <div class="card-value" id="val-sar" style="color:#a855f7">—</div>
+        <div class="card-unit">جنيه / ريال</div>
+        <div class="buy-sell">
+          <span class="buy-tag" id="buy-sar">شراء —</span>
+          <span class="sell-tag" id="sell-sar">بيع —</span>
+        </div>
+      </div>
+      <div class="price-card gbp-card" onclick="quickAlert('gbp')" style="grid-column:1/-1">
+        <div class="card-alert-dot" id="dot-gbp"></div>
+        <div class="card-flag">🇬🇧</div>
+        <div class="card-name">جنيه إسترليني</div>
+        <div class="card-value" id="val-gbp" style="color:#f97316">—</div>
+        <div class="card-unit">جنيه مصري / إسترليني</div>
+        <div class="buy-sell">
+          <span class="buy-tag" id="buy-gbp">شراء —</span>
+          <span class="sell-tag" id="sell-gbp">بيع —</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page" id="page-alerts">
+    <div class="section-title">إضافة تنبيه</div>
+    <div class="alert-panel">
+      <div class="alert-panel-header">🔔 تنبيه جديد</div>
+      <div class="alert-panel-body">
+        <div class="form-row">
+          <div>
+            <span class="field-label">الأصل</span>
+            <select id="alertAsset" onchange="updateHint()">
+              <option value="gold">🥇 الذهب (جنيه/جم)</option>
+              <option value="usd">🇺🇸 دولار</option>
+              <option value="eur">🇪🇺 يورو</option>
+              <option value="sar">🇸🇦 ريال سعودي</option>
+              <option value="gbp">🇬🇧 إسترليني</option>
+            </select>
+          </div>
+          <div>
+            <span class="field-label">الشرط</span>
+            <select id="alertCond">
+              <option value="above">⬆️ فوق</option>
+              <option value="below">⬇️ تحت</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-bottom:10px">
+          <span class="field-label">السعر المستهدف</span>
+          <input type="number" id="alertPrice" placeholder="مثال: 53" step="0.5" min="0.01">
+        </div>
+        <div class="rate-hint" id="rateHint">السعر الحالي: —</div>
+        <button class="add-btn" onclick="addAlert()">➕ أضف التنبيه</button>
+      </div>
+    </div>
+    <div class="section-title">التنبيهات النشطة</div>
+    <div class="alerts-container" id="alertsList">
+      <div class="empty-msg">🔕 مفيش تنبيهات<br>اضغط على أي بطاقة أو أضف من فوق</div>
+    </div>
+  </div>
+
+  <div class="page" id="page-settings">
+    <div class="section-title">الإعدادات</div>
+    <div class="install-hint">
+      <strong>📱 إضافة للشاشة الرئيسية:</strong><br>
+      Chrome ← النقط ⋮ ← "Add to Home screen"<br>
+      هيشتغل زي تطبيق كامل!
+    </div>
+    <div class="settings-card">
+      <div class="settings-row">
+        <div><div class="settings-label">إشعارات المتصفح</div><div class="settings-sub" id="notifStatus">غير مفعلة</div></div>
+        <button class="refresh-btn" onclick="requestNotif()">تفعيل</button>
+      </div>
+      <div class="settings-row">
+        <div><div class="settings-label">صوت التنبيه</div><div class="settings-sub">بيب عند إطلاق التنبيه</div></div>
+        <label class="toggle"><input type="checkbox" id="soundToggle" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:10px">
+        <div><div class="settings-label">تحديث تلقائي</div><div class="settings-sub">الفترة بين كل تحديث</div></div>
+        <select id="intervalSelect" onchange="restartTimer()" style="width:100%">
+          <option value="120000">كل دقيقتين</option>
+          <option value="300000" selected>كل 5 دقايق</option>
+          <option value="900000">كل 15 دقيقة</option>
+          <option value="1800000">كل 30 دقيقة</option>
+        </select>
+      </div>
+    </div>
+    <div class="settings-card">
+      <div class="settings-row">
+        <div><div class="settings-label">مصدر البيانات</div><div class="settings-sub">Ta3weem ← البنك الأهلي</div></div>
+        <span style="color:var(--green);font-size:13px;font-weight:700">🟢 نشط</span>
+      </div>
+      <div class="settings-row">
+        <div><div class="settings-label">حذف كل التنبيهات</div><div class="settings-sub">مش هترجع</div></div>
+        <button class="refresh-btn" style="border-color:rgba(255,69,96,0.3);color:var(--red);background:var(--red-dim)" onclick="clearAll()">حذف</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="nav-prices" onclick="switchPage('prices')"><span class="nav-icon">📈</span>الأسعار</button>
+  <button class="nav-btn" id="nav-alerts" onclick="switchPage('alerts')"><span class="nav-icon">🔔</span>التنبيهات</button>
+  <button class="nav-btn" id="nav-settings" onclick="switchPage('settings')"><span class="nav-icon">⚙️</span>الإعدادات</button>
+</nav>
+<div class="toast" id="toast"></div>
+
+<script>
+let data = {};
+let alerts = JSON.parse(localStorage.getItem('priceAlerts2') || '[]');
+let notifGranted = Notification?.permission === 'granted';
+let autoTimer = null;
+
+const ASSETS = {
+  gold:{name:'الذهب',emoji:'🥇',unit:'جنيه/جم'},
+  usd:{name:'دولار',emoji:'🇺🇸',unit:'جنيه'},
+  eur:{name:'يورو',emoji:'🇪🇺',unit:'جنيه'},
+  sar:{name:'ريال',emoji:'🇸🇦',unit:'جنيه'},
+  gbp:{name:'إسترليني',emoji:'🇬🇧',unit:'جنيه'},
+};
+
+async function fetchAll() {
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
+  let success = false;
+
+  try {
+    // Fetch currencies from Ta3weem via allorigins proxy
+    const url = 'https://api.allorigins.win/get?url=' + encodeURIComponent('https://ta3weem.com/en/banks/national-bank-of-egypt-nbe');
+    const res = await fetch(url, {cache:'no-store'});
+    const json = await res.json();
+    const html = json.contents || '';
+
+    const extracted = parseTa3weemCurrencies(html);
+
+    // Fetch gold separately
+    const goldUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent('https://ta3weem.com/en/gold-prices/GOLD21K');
+    const goldRes = await fetch(goldUrl, {cache:'no-store'});
+    const goldJson = await goldRes.json();
+    const goldHtml = goldJson.contents || '';
+    const gold = parseTa3weemGold(goldHtml);
+    if (gold) extracted.gold = gold;
+
+    if (Object.keys(extracted).length >= 3) {
+      data = extracted;
+      success = true;
+      const now = new Date();
+      document.getElementById('lastUpdate').textContent = `البنك الأهلي — ${now.toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'})}`;
+      showToast('✅ تم التحديث من البنك الأهلي', 'ok');
+    }
+  } catch(e) { console.warn('Ta3weem fetch failed:', e); }
+
+  if (!success) {
+    await fallbackFetch();
+  }
+
+  updateUI();
+  checkAlerts();
+  btn.classList.remove('spinning');
+}
+
+function parseTa3weemCurrencies(html) {
+  const result = {};
+  // Match rows like: US Dollar (USD) | 52.85 | 52.95
+  const patterns = [
+    {key:'usd', re:/US Dollar[\s\S]{0,200}?(\d{2,3}\.\d{1,4})[\s\S]{0,50}?(\d{2,3}\.\d{1,4})/i},
+    {key:'eur', re:/Euro[\s\S]{0,200}?(\d{2,3}\.\d{1,4})[\s\S]{0,50}?(\d{2,3}\.\d{1,4})/i},
+    {key:'gbp', re:/Pound Sterling[\s\S]{0,200}?(\d{2,3}\.\d{1,4})[\s\S]{0,50}?(\d{2,3}\.\d{1,4})/i},
+    {key:'sar', re:/Saudi Riyal[\s\S]{0,200}?(\d{1,2}\.\d{1,4})[\s\S]{0,50}?(\d{1,2}\.\d{1,4})/i},
+  ];
+  patterns.forEach(({key, re}) => {
+    const m = html.match(re);
+    if (m) {
+      const buy = parseFloat(m[1]), sell = parseFloat(m[2]);
+      if (!isNaN(buy) && !isNaN(sell) && buy > 0 && sell > 0) {
+        result[key] = { buy: Math.min(buy,sell), sell: Math.max(buy,sell) };
+      }
+    }
+  });
+  return result;
+}
+
+function parseTa3weemGold(html) {
+  // Match numbers like 6,789.40 or 6850.00 in gold price range 3000-15000
+  const nums = [...html.matchAll(/(\d{1,2},\d{3}(?:\.\d{1,2})?|\d{4,5}(?:\.\d{1,2})?)/g)]
+    .map(m => parseFloat(m[1].replace(/,/g, '')))
+    .filter(n => n >= 3000 && n <= 15000);
+  if (nums.length >= 2) {
+    const sorted = [...new Set(nums)].sort((a,b)=>a-b);
+    // Use first (lowest=buy) and last (highest=sell) unique values
+    return { buy: sorted[0], sell: sorted[sorted.length-1] };
+  }
+  return null;
+}
+
+async function fallbackFetch() {
+  try {
+    const res = await fetch('https://open.er-api.com/v6/latest/EGP');
+    const json = await res.json();
+    const r = json.rates;
+    const mk = (base, sp=0.004) => ({
+      buy:  parseFloat((base*(1-sp)).toFixed(2)),
+      sell: parseFloat((base*(1+sp)).toFixed(2))
+    });
+    data.usd = mk(1/r.USD);
+    data.eur = mk(1/r.EUR);
+    data.sar = mk(1/r.SAR);
+    data.gbp = mk(1/r.GBP);
+    document.getElementById('lastUpdate').textContent = 'بيانات تقديرية (السوق العالمي)';
+    showToast('⚠️ بيانات تقديرية — تعذر الوصول للبنك الأهلي', 'gold');
+  } catch(e) {
+    document.getElementById('lastUpdate').textContent = 'فشل التحديث';
+    showToast('❌ فشل التحديث', 'danger');
+  }
+}
+
+function updateUI() {
+  for (const key of ['usd','eur','sar','gbp','gold']) {
+    const d = data[key];
+    if (!d?.sell) continue;
+    const el = document.getElementById('val-'+key);
+    const buyEl = document.getElementById('buy-'+key);
+    const sellEl = document.getElementById('sell-'+key);
+    el.textContent = d.sell.toFixed(2);
+    if (buyEl)  buyEl.textContent  = 'شراء ' + d.buy.toFixed(2);
+    if (sellEl) sellEl.textContent = 'بيع '  + d.sell.toFixed(2);
+    el.style.opacity='0.3';
+    setTimeout(()=>el.style.opacity='1', 400);
+  }
+  updateAlertDots();
+  updateHint();
+}
+
+function addAlert() {
+  const asset = document.getElementById('alertAsset').value;
+  const cond  = document.getElementById('alertCond').value;
+  const price = parseFloat(document.getElementById('alertPrice').value);
+  if (!price||price<=0) { showToast('❌ أدخل سعر صحيح','danger'); return; }
+  alerts.push({id:Date.now(),asset,cond,price,triggered:false,time:new Date().toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'})});
+  saveAlerts(); renderAlerts(); updateAlertDots();
+  restartTimer(); requestNotif();
+  showToast(`🔔 ${ASSETS[asset].emoji} ${cond==='above'?'فوق':'تحت'} ${price}`,'gold');
+  document.getElementById('alertPrice').value='';
+}
+
+function quickAlert(asset) {
+  document.getElementById('alertAsset').value=asset;
+  if (data[asset]?.sell) document.getElementById('alertPrice').value=data[asset].sell.toFixed(2);
+  switchPage('alerts'); updateHint();
+}
+
+function updateHint() {
+  const asset = document.getElementById('alertAsset').value;
+  const hint = document.getElementById('rateHint');
+  if (data[asset]?.sell) {
+    hint.innerHTML=`السعر الحالي (بيع): <span>${data[asset].sell.toFixed(2)}</span> — (شراء: ${data[asset].buy?.toFixed(2)||'—'})`;
+  } else {
+    hint.innerHTML='السعر الحالي: —';
+  }
+}
+
+function deleteAlert(id) {
+  alerts=alerts.filter(a=>a.id!==id);
+  saveAlerts(); renderAlerts(); updateAlertDots();
+}
+
+function clearAll() {
+  if(!confirm('تحذف كل التنبيهات؟'))return;
+  alerts=[]; saveAlerts(); renderAlerts(); updateAlertDots();
+  clearInterval(autoTimer);
+  showToast('🗑️ تم الحذف','danger');
+}
+
+function checkAlerts() {
+  let fired=false;
+  alerts.forEach(a=>{
+    if(a.triggered||!data[a.asset]?.sell)return;
+    const val=data[a.asset].sell;
+    if((a.cond==='above'&&val>a.price)||(a.cond==='below'&&val<a.price)){
+      a.triggered=true; fired=true; fireAlert(a,val);
+    }
+  });
+  if(fired){saveAlerts();renderAlerts();updateAlertDots();}
+}
+
+function fireAlert(a,val) {
+  const info=ASSETS[a.asset];
+  const msg=`🚨 ${info.emoji} ${info.name} = ${val.toFixed(2)} — ${a.cond==='above'?'تجاوز':'نزل تحت'} ${a.price}!`;
+  showToast(msg,'danger');
+  if(notifGranted){try{new Notification('تنبيه سعر! 🚨',{body:msg});}catch(e){}}
+  if(document.getElementById('soundToggle').checked)playBeep();
+}
+
+function playBeep() {
+  try {
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    [0,200,400,700].forEach(d=>setTimeout(()=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.type='sine';o.frequency.value=d<400?880:1100;
+      g.gain.setValueAtTime(0.25,ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.25);
+      o.start(ctx.currentTime);o.stop(ctx.currentTime+0.25);
+    },d));
+  }catch(e){}
+}
+
+function renderAlerts() {
+  const list=document.getElementById('alertsList');
+  if(!alerts.length){list.innerHTML='<div class="empty-msg">🔕 مفيش تنبيهات<br>اضغط على أي بطاقة أو أضف من فوق</div>';return;}
+  list.innerHTML=alerts.map(a=>{
+    const info=ASSETS[a.asset];
+    return`<div class="alert-item ${a.triggered?'triggered':''}">
+      <div class="alert-left"><span class="alert-emoji">${info.emoji}</span>
+        <div><div class="alert-name">${info.name} ${a.cond==='above'?'⬆️':'⬇️'} ${a.price}</div>
+        <div class="alert-desc">أضيف ${a.time} · ${info.unit}</div></div>
+      </div>
+      <div class="alert-right">
+        <button class="del-btn" onclick="deleteAlert(${a.id})">✕</button>
+        <span class="badge ${a.triggered?'badge-triggered':'badge-active'}">${a.triggered?'🔴 اتحقق':'🟢 نشط'}</span>
+      </div></div>`;
+  }).join('');
+}
+
+function updateAlertDots() {
+  for(const key of['gold','usd','eur','sar','gbp']){
+    document.getElementById('dot-'+key).classList.toggle('visible',alerts.some(a=>a.asset===key&&!a.triggered));
+  }
+}
+
+function saveAlerts(){localStorage.setItem('priceAlerts2',JSON.stringify(alerts));}
+
+function restartTimer(){
+  clearInterval(autoTimer);
+  if(!alerts.filter(a=>!a.triggered).length)return;
+  const ms=parseInt(document.getElementById('intervalSelect').value);
+  autoTimer=setInterval(fetchAll,ms);
+}
+
+async function requestNotif(){
+  if(!('Notification'in window))return;
+  if(Notification.permission==='granted'){notifGranted=true;document.getElementById('notifStatus').textContent='✅ مفعلة';return;}
+  if(Notification.permission!=='denied'){
+    const p=await Notification.requestPermission();
+    notifGranted=p==='granted';
+    document.getElementById('notifStatus').textContent=notifGranted?'✅ مفعلة':'❌ مرفوضة';
+    showToast(notifGranted?'✅ الإشعارات شغالة':'❌ افتح إعدادات المتصفح',notifGranted?'ok':'danger');
+  }
+}
+
+function switchPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  window.scrollTo(0,0);
+  if(name==='alerts')updateHint();
+}
+
+let toastTimer;
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast show '+type;
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+renderAlerts();updateAlertDots();
+fetchAll();
+if(alerts.filter(a=>!a.triggered).length>0)restartTimer();
+if(notifGranted)document.getElementById('notifStatus').textContent='✅ مفعلة';
+</script>
+</body>
+</html>
